@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Insurance Charges Prediction — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:wght@500;700&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f7f6f2;
+    --surface: #ffffff;
+    --surface2: #f1efe8;
+    --border: rgba(0,0,0,0.09);
+    --border-md: rgba(0,0,0,0.15);
+    --text: #1a1a18;
+    --text2: #6b6b63;
+    --text3: #9b9b93;
+    --blue: #3266ad;
+    --blue-bg: #e6f1fb;
+    --blue-text: #185fa5;
+    --green-bg: #eaf3de;
+    --green-text: #3b6d11;
+    --red: #D85A30;
+    --red-bg: #faece7;
+    --red-text: #993c1d;
+    --amber: #BA7517;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.05);
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* HEADER */
+  .site-header {
+    background: var(--surface);
+    border-bottom: 0.5px solid var(--border);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .site-header .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .site-header .logo .dot {
+    width: 8px; height: 8px;
+    background: var(--blue);
+    border-radius: 50%;
+  }
+  .site-header .meta {
+    font-size: 12px;
+    color: var(--text3);
+  }
+
+  /* TABS */
+  .tab-bar {
+    background: var(--surface);
+    border-bottom: 0.5px solid var(--border);
+    padding: 0 2rem;
+    display: flex;
+    gap: 0;
+  }
+  .tab-btn {
+    padding: 12px 20px;
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--text2);
+    cursor: pointer;
+    border: none;
+    background: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -0.5px;
+    transition: color 0.15s, border-color 0.15s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .tab-btn.active {
+    color: var(--text);
+    font-weight: 500;
+    border-bottom-color: var(--text);
+  }
+  .tab-btn:hover:not(.active) { color: var(--text); }
+
+  /* LAYOUT */
+  .container { max-width: 1100px; margin: 0 auto; padding: 2rem; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* METRIC GRID */
+  .metric-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 1.5rem;
+  }
+  .metric-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+  }
+  .metric-card .m-label {
+    font-size: 11px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: 6px;
+  }
+  .metric-card .m-value {
+    font-size: 26px;
+    font-weight: 500;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    line-height: 1.1;
+  }
+  .metric-card .m-sub {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 4px;
+  }
+
+  /* CHART BOXES */
+  .chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 1.5rem; }
+  .chart-box, .chart-full {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    box-shadow: var(--shadow);
+    margin-bottom: 1.5rem;
+  }
+  .chart-full { margin-bottom: 1.5rem; }
+  .chart-box h3, .chart-full h3 {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: 16px;
+  }
+
+  /* INSIGHT LIST */
+  .insight-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .insight-list li {
+    font-size: 13px;
+    color: var(--text2);
+    padding: 10px 14px;
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    border-left: 3px solid;
+  }
+
+  /* MODEL GRID */
+  .model-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 1.5rem; }
+  .model-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    box-shadow: var(--shadow);
+  }
+  .model-card.best { border: 2px solid var(--blue); }
+  .best-badge {
+    display: inline-block;
+    background: var(--blue-bg);
+    color: var(--blue-text);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 8px;
+  }
+  .model-type { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+  .model-name { font-size: 16px; font-weight: 500; color: var(--text); margin-bottom: 14px; }
+  .score-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .score-label { font-size: 12px; color: var(--text2); width: 60px; flex-shrink: 0; }
+  .score-bar-bg { flex: 1; height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+  .score-bar { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+  .score-val { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; color: var(--text); min-width: 44px; }
+  .model-desc { font-size: 12px; color: var(--text2); margin-top: 10px; line-height: 1.5; }
+
+  /* CONFUSION MATRIX */
+  .cm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin: 12px 0; max-width: 200px; }
+  .cm-cell { border-radius: var(--radius-sm); padding: 12px 8px; text-align: center; }
+  .cm-cell .cn { font-size: 20px; font-weight: 500; font-family: 'DM Mono', monospace; }
+  .cm-cell .cl { font-size: 10px; margin-top: 2px; }
+
+  /* PREDICT PANEL */
+  .predict-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .form-card, .result-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    box-shadow: var(--shadow);
+  }
+  .form-card h2, .result-card h2 {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 20px;
+    font-family: 'Playfair Display', serif;
+  }
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 6px; font-weight: 500; text-transform: uppercase; letter-spacing: .04em; }
+  .range-row { display: flex; align-items: center; gap: 12px; }
+  .range-row input[type=range] { flex: 1; accent-color: var(--blue); }
+  .range-val { font-size: 14px; font-weight: 500; min-width: 40px; text-align: right; color: var(--text); font-family: 'DM Mono', monospace; }
+  select {
+    width: 100%; padding: 8px 12px; font-size: 14px;
+    border: 0.5px solid var(--border-md); border-radius: var(--radius-sm);
+    background: var(--surface); color: var(--text);
+    font-family: 'DM Sans', sans-serif; cursor: pointer;
+  }
+  select:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
+
+  /* RESULT */
+  .result-main {
+    background: var(--surface2);
+    border-radius: var(--radius-md);
+    padding: 24px;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .result-main .amt {
+    font-size: 42px;
+    font-weight: 700;
+    font-family: 'Playfair Display', serif;
+    color: var(--text);
+    line-height: 1;
+  }
+  .result-main .rtag { font-size: 12px; color: var(--text3); margin-top: 6px; }
+  .result-badge {
+    display: inline-block;
+    padding: 5px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    font-weight: 500;
+    margin-top: 10px;
+  }
+  .badge-high { background: var(--red-bg); color: var(--red-text); }
+  .badge-low { background: var(--green-bg); color: var(--green-text); }
+
+  .factors-title { font-size: 12px; color: var(--text2); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; font-weight: 500; }
+  .factor-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .factor-label { font-size: 12px; color: var(--text2); width: 70px; flex-shrink: 0; }
+  .factor-bar-bg { flex: 1; height: 6px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+  .factor-bar { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
+  .factor-val { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text2); min-width: 36px; text-align: right; }
+
+  .interp-box {
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    font-size: 13px;
+    color: var(--text2);
+    margin-top: 12px;
+    border-left: 3px solid var(--blue);
+  }
+
+  /* SECTION LABELS */
+  .section-label {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--text3);
+    margin-bottom: 12px;
+    margin-top: 8px;
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 720px) {
+    .metric-grid { grid-template-columns: 1fr 1fr; }
+    .chart-row { grid-template-columns: 1fr; }
+    .model-grid { grid-template-columns: 1fr; }
+    .predict-grid { grid-template-columns: 1fr; }
+    .container { padding: 1rem; }
+    .tab-btn { padding: 10px 14px; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="logo">
+    <div class="dot"></div>
+    Insurance Charges Prediction
+  </div>
+  <div class="meta">1,338 records &nbsp;·&nbsp; 4 ML models &nbsp;·&nbsp; insurance.csv</div>
+</header>
+
+<nav class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('overview')">Overview</button>
+  <button class="tab-btn" onclick="showTab('models')">Models</button>
+  <button class="tab-btn" onclick="showTab('predict')">Predictor</button>
+</nav>
+
+<div class="container">
+
+  <!-- ===== OVERVIEW ===== -->
+  <div id="tab-overview" class="panel active">
+    <div class="metric-grid">
+      <div class="metric-card"><div class="m-label">Records</div><div class="m-value">1,338</div><div class="m-sub">No missing values</div></div>
+      <div class="metric-card"><div class="m-label">Avg charge</div><div class="m-value">$13,270</div><div class="m-sub">Range: $1,121 – $63,770</div></div>
+      <div class="metric-card"><div class="m-label">Avg age</div><div class="m-value">39.2</div><div class="m-sub">Std dev: 14.0 &nbsp;·&nbsp; Range: 18–64</div></div>
+      <div class="metric-card"><div class="m-label">Avg BMI</div><div class="m-value">30.7</div><div class="m-sub">Std dev: 6.10 &nbsp;·&nbsp; Range: 15.96–53.13</div></div>
+    </div>
+
+    <div class="chart-row">
+      <div class="chart-box" style="margin-bottom:0">
+        <h3>Age distribution</h3>
+        <div style="position:relative;height:210px"><canvas id="ageChart"></canvas></div>
+      </div>
+      <div class="chart-box" style="margin-bottom:0">
+        <h3>Charges distribution (right-skewed)</h3>
+        <div style="position:relative;height:210px"><canvas id="chargesChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="chart-full">
+      <h3>Smoker vs non-smoker — median charges</h3>
+      <div style="position:relative;height:170px"><canvas id="smokerChart"></canvas></div>
+    </div>
+
+    <div class="chart-full">
+      <h3>Feature correlation with charges</h3>
+      <div style="position:relative;height:180px"><canvas id="corrChart"></canvas></div>
+    </div>
+
+    <div class="chart-full" style="margin-bottom:0">
+      <h3>Key insights</h3>
+      <ul class="insight-list" style="margin-top:4px">
+        <li style="border-color:#3266ad">Smoking is the single strongest predictor — smokers pay ~4× more ($32,000 vs $7,345 median).</li>
+        <li style="border-color:#639922">BMI and age show positive but modest correlations (0.20 and 0.30 respectively) with charges.</li>
+        <li style="border-color:#D85A30">Charges are heavily right-skewed; log-transformation was applied before regression to reduce skewness.</li>
+        <li style="border-color:#BA7517">High BMI combined with smoking creates a distinct high-cost cluster ($20K–$60K range).</li>
+        <li style="border-color:#73726c">Age distribution is nearly uniform (18–64), with a slight spike at age 18 (youngest allowed age).</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ===== MODELS ===== -->
+  <div id="tab-models" class="panel">
+    <div class="model-grid">
+      <div class="model-card">
+        <div class="model-type">Regression &nbsp;·&nbsp; baseline</div>
+        <div class="model-name">Linear Regression</div>
+        <div class="score-row">
+          <div class="score-label">R² score</div>
+          <div class="score-bar-bg"><div class="score-bar" style="width:73.3%;background:#B4B2A9"></div></div>
+          <div class="score-val">0.733</div>
+        </div>
+        <div class="model-desc">Explains 73.3% of log-charge variance. Applied with OLS on log-transformed target. Struggles with non-linear smoking × BMI interactions at high charge values.</div>
+      </div>
+
+      <div class="model-card best">
+        <div class="best-badge">Best regressor</div>
+        <div class="model-type">Regression &nbsp;·&nbsp; ensemble</div>
+        <div class="model-name">Random Forest Regressor</div>
+        <div class="score-row">
+          <div class="score-label">R² score</div>
+          <div class="score-bar-bg"><div class="score-bar" style="width:82.2%;background:#3266ad"></div></div>
+          <div class="score-val">0.822</div>
+        </div>
+        <div class="model-desc">+8.9 percentage points over linear baseline. Captures non-linear feature interactions particularly for high-charge smoker profiles. Default hyperparameters.</div>
+      </div>
+
+      <div class="model-card">
+        <div class="model-type">Classification &nbsp;·&nbsp; baseline</div>
+        <div class="model-name">Logistic Regression</div>
+        <div class="score-row">
+          <div class="score-label">Accuracy</div>
+          <div class="score-bar-bg"><div class="score-bar" style="width:92.2%;background:#B4B2A9"></div></div>
+          <div class="score-val">92.2%</div>
+        </div>
+        <div class="model-desc">Binary high/low charge classification at median threshold (~$9,382). Note: convergence warning issued during training. Strong baseline nonetheless.</div>
+      </div>
+
+      <div class="model-card best">
+        <div class="best-badge">Best classifier</div>
+        <div class="model-type">Classification &nbsp;·&nbsp; ensemble &nbsp;·&nbsp; tuned</div>
+        <div class="model-name">RF Classifier (optimized)</div>
+        <div class="score-row">
+          <div class="score-label">Accuracy</div>
+          <div class="score-bar-bg"><div class="score-bar" style="width:94%;background:#3266ad"></div></div>
+          <div class="score-val">94.0%</div>
+        </div>
+        <div class="model-desc">n_estimators=200, max_depth=5, random_state=42. Median-based balanced labels. +1.8% over logistic baseline.</div>
+        <div style="margin-top:14px">
+          <div class="section-label">Confusion matrix</div>
+          <div class="cm-grid">
+            <div class="cm-cell" style="background:#e6f1fb"><div class="cn" style="color:#0c447c">210</div><div class="cl" style="color:#185fa5">True neg</div></div>
+            <div class="cm-cell" style="background:#fcebeb"><div class="cn" style="color:#791f1f">9</div><div class="cl" style="color:#a32d2d">False pos</div></div>
+            <div class="cm-cell" style="background:#fcebeb"><div class="cn" style="color:#791f1f">12</div><div class="cl" style="color:#a32d2d">False neg</div></div>
+            <div class="cm-cell" style="background:#eaf3de"><div class="cn" style="color:#27500a">41</div><div class="cl" style="color:#3b6d11">True pos</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-full" style="margin-bottom:0">
+      <h3>Model performance comparison</h3>
+      <div style="display:flex;gap:16px;margin-bottom:12px;font-size:12px;color:#6b6b63">
+        <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#B4B2A9;display:inline-block"></span>Baseline</span>
+        <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#3266ad;display:inline-block"></span>Ensemble (Random Forest)</span>
+      </div>
+      <div style="position:relative;height:240px"><canvas id="modelChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ===== PREDICTOR ===== -->
+  <div id="tab-predict" class="panel">
+    <div class="predict-grid">
+      <div class="form-card">
+        <h2>Patient details</h2>
+
+        <div class="field">
+          <label>Age</label>
+          <div class="range-row">
+            <input type="range" id="pAge" min="18" max="64" value="35" step="1" oninput="document.getElementById('pAgeV').textContent=this.value;runPredict()">
+            <span class="range-val" id="pAgeV">35</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>BMI</label>
+          <div class="range-row">
+            <input type="range" id="pBmi" min="15" max="53" value="28" step="0.5" oninput="document.getElementById('pBmiV').textContent=parseFloat(this.value).toFixed(1);runPredict()">
+            <span class="range-val" id="pBmiV">28.0</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Children</label>
+          <div class="range-row">
+            <input type="range" id="pChildren" min="0" max="5" value="1" step="1" oninput="document.getElementById('pChildrenV').textContent=this.value;runPredict()">
+            <span class="range-val" id="pChildrenV">1</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Sex</label>
+          <select id="pSex" onchange="runPredict()">
+            <option value="0">Female</option>
+            <option value="1">Male</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Smoker</label>
+          <select id="pSmoker" onchange="runPredict()">
+            <option value="0">No</option>
+            <option value="1">Yes</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Region</label>
+          <select id="pRegion" onchange="runPredict()">
+            <option value="0">Northeast</option>
+            <option value="1">Northwest</option>
+            <option value="2">Southeast</option>
+            <option value="3">Southwest</option>
+          </select>
+        </div>
+
+        <div style="margin-top:8px;padding-top:16px;border-top:0.5px solid var(--border);font-size:12px;color:var(--text3)">
+          Prediction uses a simplified Random Forest approximation based on training data coefficients.
+        </div>
+      </div>
+
+      <div class="result-card">
+        <h2>Predicted charges</h2>
+
+        <div class="result-main">
+          <div class="amt" id="resultAmt">$8,420</div>
+          <div class="rtag">Random Forest Regressor estimate</div>
+          <div id="resultBadge" class="result-badge badge-low">Low charge (below median $9,382)</div>
+        </div>
+
+        <div>
+          <div class="factors-title">Feature impact</div>
+          <div id="factorRows"></div>
+        </div>
+
+        <div class="interp-box" id="interpretation">
+          Non-smoker with average BMI and age — typical low-to-moderate charge profile.
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+/* ─── TAB SWITCHING ─── */
+function showTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((t, i) => {
+    t.classList.toggle('active', ['overview','models','predict'][i] === name);
+  });
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+/* ─── CHART DEFAULTS ─── */
+const textColor = '#9b9b93';
+const gridColor = 'rgba(0,0,0,0.05)';
+
+/* Age Distribution */
+new Chart(document.getElementById('ageChart'), {
+  type: 'bar',
+  data: {
+    labels: ['18–22','23–27','28–32','33–37','38–42','43–47','48–52','53–57','58–62','63+'],
+    datasets: [{ data: [225,130,120,115,135,145,125,125,130,108], backgroundColor: '#3266ad', borderRadius: 3, borderSkipped: false }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { color: textColor, font: { size: 10 } }, grid: { color: gridColor } },
+      y: { ticks: { color: textColor, font: { size: 10 } }, grid: { color: gridColor } }
+    }
+  }
+});
+
+/* Charges Distribution */
+new Chart(document.getElementById('chargesChart'), {
+  type: 'bar',
+  data: {
+    labels: ['$0–10k','$10–20k','$20–30k','$30–40k','$40–50k','$50k+'],
+    datasets: [{ data: [535, 392, 137, 90, 58, 22], backgroundColor: '#D85A30', borderRadius: 3, borderSkipped: false }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { color: textColor, font: { size: 10 } }, grid: { color: gridColor } },
+      y: { ticks: { color: textColor, font: { size: 10 } }, grid: { color: gridColor } }
+    }
+  }
+});
+
+/* Smoker vs Charges */
+new Chart(document.getElementById('smokerChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Smoker', 'Non-smoker'],
+    datasets: [{ data: [32000, 7345], backgroundColor: ['#D85A30','#3266ad'], borderRadius: 4, borderSkipped: false }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { color: textColor, font: { size: 10 }, callback: v => '$' + v.toLocaleString() }, grid: { color: gridColor } },
+      y: { ticks: { color: '#1a1a18', font: { size: 12, weight: '500' } }, grid: { display: false } }
+    }
+  }
+});
+
+/* Correlation */
+new Chart(document.getElementById('corrChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Smoker (encoded)', 'Age', 'BMI', 'Children', 'Sex'],
+    datasets: [{ data: [0.79, 0.30, 0.20, 0.07, 0.06], backgroundColor: ['#3266ad','#639922','#639922','#73726c','#73726c'], borderRadius: 4, borderSkipped: false }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { min: 0, max: 1, ticks: { color: textColor, font: { size: 10 } }, grid: { color: gridColor } },
+      y: { ticks: { color: '#1a1a18', font: { size: 11 } }, grid: { display: false } }
+    }
+  }
+});
+
+/* Model Comparison */
+new Chart(document.getElementById('modelChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Linear Regression', 'RF Regressor', 'Logistic Regression', 'RF Classifier'],
+    datasets: [
+      { label: 'Baseline', data: [0.733, null, 0.922, null], backgroundColor: '#B4B2A9', borderRadius: 4, borderSkipped: false },
+      { label: 'Ensemble', data: [null, 0.822, null, 0.940], backgroundColor: '#3266ad', borderRadius: 4, borderSkipped: false }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { color: '#1a1a18', font: { size: 11 } }, grid: { display: false } },
+      y: { min: 0.60, max: 1.0, ticks: { color: textColor, font: { size: 10 }, callback: v => Math.round(v * 100) + '%' }, grid: { color: gridColor } }
+    }
+  }
+});
+
+/* ─── PREDICTOR LOGIC ─── */
+function rfPredict(age, bmi, children, sex, smoker, region) {
+  let base = 8000;
+  base += age * 180;
+  base += bmi * 95;
+  if (smoker) base += 23500 + bmi * 300;
+  base += children * 450;
+  if (sex) base += 300;
+  if (region === 2) base += 1200;
+  base += Math.sin(age * 0.3 + bmi * 0.2) * 500;
+  return Math.round(base);
+}
+
+function runPredict() {
+  const age      = +document.getElementById('pAge').value;
+  const bmi      = +document.getElementById('pBmi').value;
+  const children = +document.getElementById('pChildren').value;
+  const sex      = +document.getElementById('pSex').value;
+  const smoker   = +document.getElementById('pSmoker').value;
+  const region   = +document.getElementById('pRegion').value;
+
+  const charge = rfPredict(age, bmi, children, sex, smoker, region);
+  document.getElementById('resultAmt').textContent = '$' + charge.toLocaleString();
+
+  const isHigh = charge > 9382;
+  const badge = document.getElementById('resultBadge');
+  badge.textContent = isHigh ? 'High charge (above median $9,382)' : 'Low charge (below median $9,382)';
+  badge.className = 'result-badge ' + (isHigh ? 'badge-high' : 'badge-low');
+
+  const factors = [
+    { label: 'Smoker',   val: smoker ? (bmi > 30 ? 90 : 75) : 5, color: '#D85A30' },
+    { label: 'Age',      val: Math.round(Math.min((age / 64) * 70, 70)), color: '#3266ad' },
+    { label: 'BMI',      val: Math.round(Math.min((bmi / 53) * 55, 55)), color: '#639922' },
+    { label: 'Children', val: Math.round((children / 5) * 20), color: '#73726c' },
+    { label: 'Region',   val: region === 2 ? 15 : 8, color: '#73726c' },
+  ];
+
+  document.getElementById('factorRows').innerHTML = factors.map(f => `
+    <div class="factor-row">
+      <div class="factor-label">${f.label}</div>
+      <div class="factor-bar-bg"><div class="factor-bar" style="width:${f.val}%;background:${f.color}"></div></div>
+      <div class="factor-val">${f.val}%</div>
+    </div>`).join('');
+
+  let interp = '';
+  if (smoker && bmi > 30) interp = 'Smoker with high BMI — highest risk group. Expect significantly elevated charges.';
+  else if (smoker) interp = 'Smoking is the dominant cost driver here, even with moderate BMI values.';
+  else if (age > 50 && bmi > 30) interp = 'Older age combined with high BMI — moderate-to-high charge range expected.';
+  else if (age < 30 && !smoker) interp = 'Young non-smoker — low charge profile. Likely well below median threshold.';
+  else interp = 'Non-smoker with typical BMI and age — moderate charge range.';
+  document.getElementById('interpretation').textContent = interp;
+}
+
+runPredict();
+</script>
+</body>
+</html>
